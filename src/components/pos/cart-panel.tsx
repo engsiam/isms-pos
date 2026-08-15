@@ -20,7 +20,9 @@ import { pingBackend } from "@/lib/tauri";
 const METHOD_LABELS: Record<SaleMethod, string> = {
   cash: "Cash",
   card: "Card",
-  mobile: "Mobile",
+  bkash: "bKash",
+  nagad: "Nagad",
+  other: "Other",
 };
 
 export function CartPanel({ className }: { className?: string }) {

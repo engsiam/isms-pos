@@ -43,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
               size="icon-sm"
               variant="secondary"
               onClick={() =>
-                addItem(product.id, product.name, product.emoji, product.price)
+                addItem(product.id, product.name, product.emoji, product.barcode || "2400153", product.price)
               }
               aria-label={`Add ${product.name} to cart`}
               className="rounded-full"

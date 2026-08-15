@@ -1,111 +1,113 @@
 "use client";
 
 import * as React from "react";
-import { Moon, Sun, Wifi, Radio } from "lucide-react";
+import { ChevronDown, Calendar, Clock, User, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { isTauri, getAppVersion } from "@/lib/tauri";
+import { useDark } from "@/lib/use-dark";
 
 export function PosHeader() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
+  const dark = useDark();
   const [time, setTime] = React.useState("");
   const [date, setDate] = React.useState("");
-  const [version, setVersion] = React.useState("1.0.0");
-
-  React.useEffect(() => { setMounted(true); }, []);
 
   React.useEffect(() => {
     const tick = () => {
       const now = new Date();
-      setTime(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      setDate(now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }));
+      setTime(
+        now.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      );
+      setDate(
+        now.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      );
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
-  React.useEffect(() => {
-    if (isTauri()) getAppVersion().then(setVersion).catch(() => {});
-  }, []);
-
   return (
-    <header
-      className="relative shrink-0 flex items-center gap-0 overflow-hidden select-none"
-      style={{ height: 56, background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 55%,#1a1040 100%)" }}
-    >
-      {/* subtle top border glow */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent" />
-
-      {/* Brand mark */}
-      <div className="flex items-center gap-3 px-4 shrink-0 border-r border-white/10 h-full">
-        <div
-          className="flex items-center justify-center rounded-xl font-black text-white shadow-lg shadow-red-900/50"
-          style={{ width: 44, height: 36, background: "linear-gradient(135deg,#dc2626,#7f1d1d)", fontSize: 11, letterSpacing: "0.12em" }}
-        >
-          ISM
-        </div>
-        <div>
-          <p className="text-white font-bold text-[12px] leading-none tracking-wide">ISM POS</p>
-          <p className="text-indigo-400 text-[9px] mt-0.5 leading-none">v{version}</p>
-        </div>
-      </div>
-
-      {/* Centre outlet info */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <p className="text-white/90 font-semibold text-[12px] tracking-wide">Outlet : ISM Main Outlet</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-indigo-300 text-[10px]">Version {version}</span>
-          <span className="w-px h-3 bg-white/20" />
-          <span className="text-indigo-300 text-[10px]">Last Invoice :</span>
-          <span className="bg-yellow-400 text-black text-[9px] font-extrabold px-1.5 py-px rounded-md leading-none">
-            —
-          </span>
-        </div>
-      </div>
-
-      {/* Right: status + user + clock */}
-      <div className="flex items-center gap-3 px-4 shrink-0 border-l border-white/10 h-full">
-        {/* online dot */}
-        <div className="flex items-center gap-1.5">
-          <span className="relative flex size-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
-          </span>
-          <span className="text-emerald-400 text-[9px] font-semibold hidden md:inline">Online</span>
-        </div>
-
-        <div className="w-px h-5 bg-white/10" />
-
-        <div className="text-right">
-          <p className="text-white/70 text-[10px] leading-snug">
-            User : <span className="text-white font-semibold">ADMIN</span>
-            &nbsp;·&nbsp; Terminal : <span className="text-white font-semibold">ISM-POS-01</span>
-          </p>
-          <div className="flex items-center justify-end gap-2 mt-0.5">
-            <span className="text-indigo-300 text-[9px]">{date}</span>
-            <span
-              className="text-yellow-300 font-extrabold tabular-nums text-[12px] tracking-wider"
-              style={{ fontVariantNumeric: "tabular-nums" }}
+    <header className="h-14 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between select-none shadow-xs transition-colors duration-300">
+      {/* ── Brand + Outlet ───────────────────────────── */}
+      <div className="flex items-center gap-6">
+        {/* Brand logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <svg
+              className="size-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              {time}
-            </span>
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
           </div>
+          <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
+            SOPNO <span className="text-blue-600 font-bold">POS</span>
+          </span>
         </div>
 
-        <div className="w-px h-5 bg-white/10" />
+        {/* Outlet dropdown button */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors">
+          <span className="text-slate-500 dark:text-slate-400 font-normal">Outlet:</span>
+          <span className="text-blue-600 dark:text-blue-400 font-bold">F277 Ramganj Outlet</span>
+          <ChevronDown className="size-3.5 text-slate-400 ml-0.5" />
+        </div>
+      </div>
 
+      {/* ── Center: Date & Time ───────────────────────── */}
+      <div className="flex items-center gap-5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+        <div className="flex items-center gap-1.5">
+          <Calendar className="size-4 text-slate-400" />
+          <span>{date || "13 May 2024"}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Clock className="size-4 text-slate-400" />
+          <span className="tabular-nums">{time || "10:30 AM"}</span>
+        </div>
+      </div>
+
+      {/* ── Right: Theme toggle + Online status + User profile ────────── */}
+      <div className="flex items-center gap-4">
+        {/* Theme toggle button */}
         <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 active:bg-white/20 transition-all"
+          onClick={() => setTheme(dark ? "light" : "dark")}
+          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
+          title={`Switch to ${dark ? "Light" : "Dark"} Mode`}
           aria-label="Toggle theme"
         >
-          {mounted ? (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />) : <Moon className="size-4" />}
+          {dark ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-slate-600" />}
         </button>
-      </div>
 
-      {/* subtle bottom border */}
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+        {/* Status pill */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Online</span>
+        </div>
+
+        {/* User profile dropdown */}
+        <div className="flex items-center gap-2.5 pl-2 cursor-pointer hover:opacity-80 transition-opacity">
+          <div className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+            <User className="size-4 text-slate-500 dark:text-slate-400" />
+          </div>
+          <div className="text-left leading-tight">
+            <p className="text-xs font-bold text-slate-800 dark:text-white">LAS1421</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Cashier</p>
+          </div>
+          <ChevronDown className="size-3.5 text-slate-400 ml-1" />
+        </div>
+      </div>
     </header>
   );
 }

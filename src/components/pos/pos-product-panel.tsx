@@ -49,7 +49,7 @@ export function PosProductPanel() {
   const getQty = (id: string) => lines.find((l) => l.productId === id)?.quantity ?? 0;
 
   const handleAdd = (p: (typeof products)[0]) => {
-    addItem(p.id, p.name, p.emoji, p.price);
+    addItem(p.id, p.name, p.emoji, p.barcode, p.price);
     setAddedId(p.id);
     setTimeout(() => setAddedId(null), 600);
   };

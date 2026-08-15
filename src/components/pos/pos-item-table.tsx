@@ -1,171 +1,166 @@
 "use client";
 
 import * as React from "react";
-import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { useCartStore, selectSubtotal } from "@/store/cart-store";
-import { siteConfig } from "@/config/site";
-import { useDark } from "@/lib/use-dark";
+import { useCartStore } from "@/store/cart-store";
 
 export function PosItemTable() {
-  const dark = useDark();
-  const { lines, updateQuantity, removeItem } = useCartStore();
-  const subtotal = useCartStore(selectSubtotal);
-  const tax = subtotal * siteConfig.taxRate;
-  const cols = "grid-cols-[2.5rem_1fr_6rem_8.5rem_7rem]";
-
-  /* theme-aware colors */
-  const tableBg    = dark ? "#0d1117" : "#f8faff";
-  const rowEven    = dark ? "#0f172a" : "#ffffff";
-  const rowOdd     = dark ? "#111827" : "#eef2ff";
-  const rowHover   = dark ? "#1e1b4b" : "#e0e7ff";
-  const borderClr  = dark ? "rgba(99,102,241,0.1)" : "rgba(209,213,219,0.8)";
-  const textMain   = dark ? "#e2e8f0" : "#1e293b";
-  const textMuted  = dark ? "#64748b" : "#6b7280";
-  const footerBg   = dark ? "#0a0f1e" : "#eef2ff";
+  const { lines, updateQuantity, removeItem, clear, note, setNote } = useCartStore();
+  const [showNoteInput, setShowNoteInput] = React.useState(false);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 transition-colors duration-300" style={{ background: tableBg }}>
-      {/* Column headers — always deep violet/indigo */}
-      <div
-        className={`grid ${cols} shrink-0 select-none text-[10px] font-extrabold text-slate-300 uppercase tracking-widest`}
-        style={{ background: "linear-gradient(135deg,#312e81 0%,#1e1b4b 60%,#0f172a 100%)" }}
-      >
-        {[
-          { label: "#",          cls: "text-center" },
-          { label: "Description", cls: "" },
-          { label: "Unit Price",  cls: "text-right" },
-          { label: "Quantity",    cls: "text-center" },
-          { label: "Line Total",  cls: "text-right" },
-        ].map(({ label, cls }) => (
-          <div key={label} className={`px-3 py-2.5 border-r last:border-r-0 ${cls}`}
-            style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-            {label}
-          </div>
-        ))}
+    <div className="flex flex-col flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors duration-300">
+      {/* ── Cart Header ───────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-extrabold text-slate-800 dark:text-white tracking-tight">CART</h2>
+          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+            ({lines.length} {lines.length === 1 ? "Item" : "Items"})
+          </span>
+        </div>
+
+        {lines.length > 0 && (
+          <button
+            onClick={() => clear()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors"
+          >
+            <Trash2 className="size-3.5" />
+            <span>Clear Cart</span>
+          </button>
+        )}
       </div>
 
-      {/* Rows */}
+      {/* ── Cart Table Content ────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
         {lines.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 select-none">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{ background: dark ? "rgba(99,102,241,0.1)" : "rgba(99,102,241,0.08)" }}
-            >
-              <ShoppingCart className="size-7" style={{ color: dark ? "#6366f1" : "#818cf8" }} />
+          <div className="flex flex-col items-center justify-center h-64 text-slate-400 dark:text-slate-500 gap-2">
+            <div className="size-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+              <ShoppingBag className="size-7" />
             </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold" style={{ color: textMuted }}>No items in current sale</p>
-              <p className="text-xs mt-0.5" style={{ color: dark ? "#374151" : "#9ca3af" }}>
-                Click a product card above or scan a barcode to begin
-              </p>
-            </div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Your cart is empty</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">Scan a barcode or click search to add products</p>
           </div>
         ) : (
-          <>
-            {lines.map((line, idx) => (
-              <div
-                key={line.productId}
-                className={`grid ${cols} text-xs group transition-colors duration-100`}
-                style={{ borderBottom: `1px solid ${borderClr}` }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.background = rowHover)}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.background = idx % 2 === 0 ? rowEven : rowOdd)}
-              >
-                {/* Row # */}
-                <div className="flex items-center justify-center px-2 py-2.5 font-mono text-[10px]"
-                  style={{ color: textMuted, borderRight: `1px solid ${borderClr}`, background: idx % 2 === 0 ? rowEven : rowOdd }}>
-                  {String(idx + 1).padStart(2, "0")}
-                </div>
-
-                {/* Description */}
-                <div className="flex items-center gap-2.5 px-3 py-2 min-w-0"
-                  style={{ borderRight: `1px solid ${borderClr}`, background: idx % 2 === 0 ? rowEven : rowOdd }}>
-                  <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-base shadow-sm bg-gradient-to-br from-indigo-400 to-indigo-600`}>
-                    {line.emoji}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold truncate text-[12px]" style={{ color: textMain }}>{line.name}</p>
-                    <p className="text-[9px] font-mono truncate" style={{ color: textMuted }}>{line.productId}</p>
-                  </div>
-                </div>
-
-                {/* Unit price */}
-                <div className="flex items-center justify-end px-3 py-2.5 tabular-nums font-medium"
-                  style={{ color: textMain, borderRight: `1px solid ${borderClr}`, background: idx % 2 === 0 ? rowEven : rowOdd }}>
-                  {formatCurrency(line.unitPrice)}
-                </div>
-
-                {/* Quantity */}
-                <div className="flex items-center justify-center px-2 py-2"
-                  style={{ borderRight: `1px solid ${borderClr}`, background: idx % 2 === 0 ? rowEven : rowOdd }}>
-                  <div className="flex items-center rounded-xl overflow-hidden shadow-sm"
-                    style={{ border: `1px solid ${dark ? "#334155" : "#c7d2fe"}` }}>
-                    <button onClick={() => updateQuantity(line.productId, line.quantity - 1)}
-                      className="w-7 h-8 flex items-center justify-center transition-colors"
-                      style={{ background: dark ? "#1e293b" : "#f8faff", color: dark ? "#94a3b8" : "#6366f1" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = dark ? "#4c0519" : "#ffe4e6")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = dark ? "#1e293b" : "#f8faff")}
-                    >
-                      <Minus className="size-3" />
-                    </button>
-                    <input type="number" min={1} max={99} value={line.quantity}
-                      onChange={(e) => updateQuantity(line.productId, Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-10 text-center text-xs font-bold tabular-nums border-x h-8 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                      style={{ background: dark ? "#0f172a" : "#fff", color: textMain, borderColor: dark ? "#334155" : "#c7d2fe" }}
-                    />
-                    <button onClick={() => updateQuantity(line.productId, line.quantity + 1)}
-                      disabled={line.quantity >= 99}
-                      className="w-7 h-8 flex items-center justify-center transition-colors disabled:opacity-30"
-                      style={{ background: dark ? "#1e293b" : "#f8faff", color: dark ? "#94a3b8" : "#6366f1" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = dark ? "#064e3b" : "#d1fae5")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = dark ? "#1e293b" : "#f8faff")}
-                    >
-                      <Plus className="size-3" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Line total */}
-                <div className="flex items-center justify-between px-3 py-2.5"
-                  style={{ background: idx % 2 === 0 ? rowEven : rowOdd }}>
-                  <span className="tabular-nums font-bold" style={{ color: textMain }}>
-                    {formatCurrency(line.unitPrice * line.quantity)}
-                  </span>
-                  <button onClick={() => removeItem(line.productId)}
-                    className="opacity-0 group-hover:opacity-100 transition-all ml-1 active:scale-90"
-                    style={{ color: dark ? "#ef4444" : "#f43f5e" }}
-                    aria-label={`Remove ${line.name}`}
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <th className="py-3 px-6 w-12 text-center">#</th>
+                <th className="py-3 px-4">Product</th>
+                <th className="py-3 px-4">Barcode</th>
+                <th className="py-3 px-4 text-right">Price</th>
+                <th className="py-3 px-4 text-center">Qty</th>
+                <th className="py-3 px-4 text-right">Total</th>
+                <th className="py-3 px-6 w-12 text-center"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+              {lines.map((line, idx) => {
+                const lineTotal = line.unitPrice * line.quantity;
+                return (
+                  <tr
+                    key={line.productId}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
                   >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                    {/* # Index */}
+                    <td className="py-4 px-6 text-center font-medium text-slate-400 dark:text-slate-500">
+                      {idx + 1}
+                    </td>
 
-            {/* Subtotal footer */}
-            <div className={`grid ${cols} border-t-2 text-xs`}
-              style={{ background: footerBg, borderColor: dark ? "rgba(99,102,241,0.2)" : "#c7d2fe" }}>
-              <div />
-              <div className="px-3 py-2.5 font-semibold" style={{ color: textMuted }}>
-                {lines.length} item{lines.length !== 1 ? "s" : ""}
-              </div>
-              <div className="px-3 py-2.5 text-right" style={{ color: textMuted }}>
-                <span className="text-[10px]">Subtotal</span>
-              </div>
-              <div className="px-3 py-2.5 text-center text-[10px]" style={{ color: textMuted }}>
-                +{Math.round(siteConfig.taxRate * 100)}% tax
-              </div>
-              <div className="px-3 py-2.5 flex flex-col items-end">
-                <span className="tabular-nums font-extrabold text-sm" style={{ color: dark ? "#a5b4fc" : "#4f46e5" }}>
-                  {formatCurrency(subtotal + tax)}
-                </span>
-                <span className="text-[9px] tabular-nums" style={{ color: textMuted }}>
-                  incl. {formatCurrency(tax)} tax
-                </span>
-              </div>
-            </div>
-          </>
+                    {/* Product Name & Icon */}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900 border border-amber-200/60 dark:border-amber-700/60 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                          {line.emoji || "📦"}
+                        </div>
+                        <span className="font-bold text-slate-800 dark:text-slate-100 text-xs leading-tight">
+                          {line.name}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Barcode */}
+                    <td className="py-4 px-4 font-mono text-slate-500 dark:text-slate-400 text-xs">
+                      {line.barcode || "2400153"}
+                    </td>
+
+                    {/* Unit Price */}
+                    <td className="py-4 px-4 text-right font-medium text-slate-700 dark:text-slate-300 tabular-nums">
+                      {formatCurrency(line.unitPrice)}
+                    </td>
+
+                    {/* Quantity Stepper */}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-center">
+                        <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-2xs">
+                          <button
+                            onClick={() => updateQuantity(line.productId, line.quantity - 1)}
+                            className="size-7 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+                          <span className="w-8 text-center font-extrabold text-slate-800 dark:text-white tabular-nums text-xs">
+                            {line.quantity}
+                          </span>
+                          <button
+                            onClick={() => updateQuantity(line.productId, line.quantity + 1)}
+                            className="size-7 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-white transition-colors"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Line Total */}
+                    <td className="py-4 px-4 text-right font-extrabold text-slate-900 dark:text-white tabular-nums">
+                      {formatCurrency(lineTotal)}
+                    </td>
+
+                    {/* Action Trash */}
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => removeItem(line.productId)}
+                        className="size-7 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/80 hover:text-rose-700 flex items-center justify-center transition-colors mx-auto"
+                        title="Remove item"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* ── Add Note Footer ───────────────────────────────── */}
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        {showNoteInput ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add order note (e.g. deliver after 5pm)…"
+              autoFocus
+              className="flex-1 px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <button
+              onClick={() => setShowNoteInput(false)}
+              className="px-3 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNoteInput(true)}
+            className="w-full py-2.5 rounded-xl border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/30 dark:bg-blue-950/30 hover:bg-blue-50 dark:hover:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <Plus className="size-3.5" />
+            <span>{note ? `Note: "${note}"` : "Add Note"}</span>
+          </button>
         )}
       </div>
     </div>

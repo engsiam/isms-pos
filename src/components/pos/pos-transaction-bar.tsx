@@ -1,57 +1,55 @@
 "use client";
 
 import * as React from "react";
-import { AlertCircle, Search, Scan } from "lucide-react";
+import { Scan, User, ChevronDown, AlertCircle, Search, LayoutGrid } from "lucide-react";
 import { products } from "@/config/products";
-import { useCartStore, selectCartCount, selectSubtotal } from "@/store/cart-store";
+import { useCartStore } from "@/store/cart-store";
 import { PosProductSearchModal } from "@/components/pos/pos-product-search-modal";
 
-interface PosTransactionBarProps {
-  onBillInvoice: () => void;
-}
-
-export function PosTransactionBar({ onBillInvoice }: PosTransactionBarProps) {
+export function PosTransactionBar() {
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
-  const [flash, setFlash] = React.useState(false);
-  const [customer, setCustomer] = React.useState("");
-  const [mobile, setMobile] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const [customer, setCustomer] = React.useState("Walk-in Customer");
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const addItem = useCartStore((s) => s.addItem);
-  const count = useCartStore(selectCartCount);
-  const subtotal = useCartStore(selectSubtotal);
 
+  // F2 key to open search modal
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "F2") { e.preventDefault(); setSearchOpen(true); }
+      if (e.key === "F2") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const handleCodeSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
     const query = code.trim().toLowerCase();
-    if (!query) { setSearchOpen(true); return; }
+    if (!query) {
+      setSearchOpen(true);
+      return;
+    }
 
     const match = products.find(
       (p) =>
-        p.id === query || p.id === `prd-${query}` ||
-        p.id.replace("prd-", "") === query ||
-        p.name.toLowerCase() === query ||
-        p.name.toLowerCase().startsWith(query)
+        p.barcode.toLowerCase() === query ||
+        p.id.toLowerCase() === query ||
+        p.name.toLowerCase().includes(query)
     );
 
     if (match) {
-      addItem(match.id, match.name, match.emoji, match.price);
-      setCode(""); setError(null);
-      setFlash(true);
-      setTimeout(() => setFlash(false), 500);
+      addItem(match.id, match.name, match.emoji, match.barcode, match.price);
+      setCode("");
+      setError(null);
       inputRef.current?.focus();
     } else {
-      setError(`"${code.trim()}" not found`);
+      setError(`Item "${code.trim()}" not found — showing catalog`);
+      setSearchOpen(true);
       setTimeout(() => setError(null), 2500);
     }
   };
@@ -60,138 +58,69 @@ export function PosTransactionBar({ onBillInvoice }: PosTransactionBarProps) {
     <>
       <PosProductSearchModal
         open={searchOpen}
-        onClose={() => { setSearchOpen(false); inputRef.current?.focus(); }}
+        onClose={() => {
+          setSearchOpen(false);
+          inputRef.current?.focus();
+        }}
       />
 
-      {/* Bar with violet-to-indigo gradient */}
-      <div
-        className="shrink-0 border-b"
-        style={{
-          background: "linear-gradient(135deg, #312e81 0%, #1e1b4b 40%, #0f172a 100%)",
-          borderColor: "rgba(99,102,241,0.25)",
-        }}
-      >
-        <div className="flex items-center gap-3 px-4 py-2.5 flex-wrap text-[11px]">
-
-          {/* ── Barcode input group ───────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4 mb-4">
+        {/* ── Scan barcode & Search box ───────────────────── */}
+        <div className="relative">
           <div
-            className="flex items-stretch rounded-xl overflow-hidden shadow-lg"
-            style={{
-              boxShadow: flash
-                ? "0 0 0 2px #10b981, 0 4px 20px rgba(99,102,241,0.4)"
-                : "0 0 0 2px rgba(165,180,252,0.4), 0 4px 20px rgba(99,102,241,0.3)",
-              transition: "box-shadow 0.3s",
-            }}
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-3 bg-white dark:bg-slate-900 border-2 border-blue-500/80 dark:border-blue-500 rounded-xl px-4 py-3 shadow-xs focus-within:ring-4 focus-within:ring-blue-500/15 transition-all cursor-pointer group"
           >
-            <div
-              className="flex items-center gap-1.5 px-3 text-[11px] font-bold text-white whitespace-nowrap"
-              style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)" }}
-            >
-              <Scan className="size-3.5" />
-              Item Code/Barcode
+            <div className="size-8 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+              <Scan className="size-5" />
             </div>
-            <div className="relative">
-              <input
-                ref={inputRef}
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                onKeyDown={handleCodeSearch}
-                autoFocus
-                id="pos-item-code-input"
-                className="w-44 px-3 py-2 text-xs focus:outline-none border-0"
-                style={{
-                  background: flash ? "#ecfdf5" : "#fefce8",
-                  color: "#0f172a",
-                  transition: "background 0.3s",
-                }}
-                placeholder="Scan / type + ↵  ·  F2 browse"
-              />
-              {error && (
-                <div className="absolute top-full left-0 mt-2 z-30 flex items-center gap-1.5 bg-rose-50 border border-rose-400 text-rose-700 px-3 py-1.5 rounded-xl text-[10px] whitespace-nowrap shadow-lg">
-                  <AlertCircle className="size-3 shrink-0" />
-                  {error}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-1 px-3 text-white/70 hover:text-white hover:bg-white/10 border-l border-white/10 transition-colors"
-              title="Browse products (F2)"
-            >
-              <Search className="size-3.5" />
-            </button>
-          </div>
-
-          <div className="w-px h-6 bg-white/15" />
-
-          {/* Customer */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-indigo-200 font-semibold whitespace-nowrap">Customer</span>
             <input
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              className="w-28 border-0 border-b border-white/20 bg-transparent text-white placeholder:text-white/30 px-1 py-1.5 text-xs focus:outline-none focus:border-indigo-400 transition-colors"
-            />
-          </div>
-
-          {/* Mobile # */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-indigo-200 font-semibold whitespace-nowrap">Mobile #</span>
-            <input
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              className="w-28 border-0 border-b border-white/20 bg-transparent text-white placeholder:text-white/30 px-1 py-1.5 text-xs focus:outline-none focus:border-indigo-400 transition-colors"
-              type="tel"
-            />
-          </div>
-
-          {/* Points */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-indigo-200 font-semibold">Points</span>
-            <span className="bg-white/10 border border-white/15 text-white/60 px-2 py-1 rounded-lg text-xs tabular-nums min-w-[2.5rem] text-center">0</span>
-          </div>
-
-          {/* Amount */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-indigo-200 font-semibold">Amount</span>
-            <span className="bg-white/10 border border-white/15 text-white font-bold px-2 py-1 rounded-lg text-xs tabular-nums min-w-[4.5rem] text-right">
-              {subtotal.toFixed(2)}
-            </span>
-          </div>
-
-          {/* Item count badge */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-indigo-200 font-semibold whitespace-nowrap">No. of Items :</span>
-            <span
-              className="min-w-[2rem] text-center font-extrabold text-white text-[11px] px-2.5 py-1 rounded-lg tabular-nums shadow-md transition-all"
-              style={{
-                background: count > 0
-                  ? "linear-gradient(135deg,#f97316,#ea580c)"
-                  : "rgba(255,255,255,0.12)",
+              ref={inputRef}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              onKeyDown={handleScan}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchOpen(true);
               }}
+              autoFocus
+              placeholder="Scan barcode or click to view all products… (F2)"
+              className="w-full bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none cursor-pointer"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+              title="Show All Products (F2)"
             >
-              {count}
-            </span>
+              <LayoutGrid className="size-3.5" />
+              <span className="hidden sm:inline">All Products</span>
+            </button>
           </div>
 
-          {/* Invoice buttons */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <button
-              onClick={onBillInvoice}
-              id="pos-bill-invoice-btn"
-              className="flex items-center gap-1.5 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95"
-              style={{ background: "linear-gradient(135deg,#06b6d4,#0891b2)", boxShadow: "0 4px 14px rgba(6,182,212,0.35)" }}
-            >
-              Bill Invoice
-            </button>
-            <button className="border border-white/20 bg-white/10 hover:bg-white/15 text-white/80 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold transition-all">
-              Reprint Invoice
-            </button>
-            <select className="bg-white/10 border border-white/15 text-white text-[10px] px-2 py-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-400">
-              <option className="bg-slate-800">Regular</option>
-              <option className="bg-slate-800">Fiscal</option>
-            </select>
+          {error && (
+            <div className="absolute left-0 top-full mt-1.5 z-20 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 px-3 py-1.5 rounded-lg text-xs shadow-md">
+              <AlertCircle className="size-3.5" />
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* ── Customer selector ──────────────────────────── */}
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 shadow-xs cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+              <User className="size-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium leading-none">Customer</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">{customer}</p>
+            </div>
           </div>
+          <ChevronDown className="size-4 text-slate-400 shrink-0 ml-1" />
         </div>
       </div>
     </>
