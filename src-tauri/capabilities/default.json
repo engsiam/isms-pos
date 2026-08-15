@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    {
+      "identifier": "core:window:allow-set-title",
+      "allow": [{ "windows": ["main"] }]
+    },
+    {
+      "identifier": "core:window:allow-show",
+      "allow": [{ "windows": ["main"] }]
+    }
+  ]
+}

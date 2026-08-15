@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ISM POS developer documentation — architecture, commands, components and setup guide." />
+  <title>ISM POS — Developer Documentation</title>
+  <style>
+    /* ── Reset & tokens ────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d12;
+      --surface: #16161e;
+      --surface-2: #1e1e2a;
+      --border: rgba(255,255,255,.08);
+      --primary: #818cf8;
+      --primary-dim: rgba(129,140,248,.12);
+      --accent: #34d399;
+      --accent-dim: rgba(52,211,153,.12);
+      --warn: #fbbf24;
+      --warn-dim: rgba(251,191,36,.10);
+      --danger: #f87171;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --code-bg: #0f172a;
+      --radius: .75rem;
+      --sidebar-w: 280px;
+      font-size: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      line-height: 1.65;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────────── */
+    nav#sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .5rem .75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: .5rem;
+    }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .7rem; color: #fff; flex-shrink: 0;
+    }
+    .brand-name { font-weight: 700; font-size: .95rem; }
+    .brand-sub  { font-size: .7rem; color: var(--muted); }
+
+    .nav-section {
+      font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      padding: .75rem .75rem .25rem;
+    }
+    nav#sidebar a {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .45rem .75rem; border-radius: .5rem;
+      text-decoration: none; color: var(--muted);
+      font-size: .82rem; transition: all .15s;
+    }
+    nav#sidebar a:hover,
+    nav#sidebar a.active {
+      background: var(--primary-dim); color: var(--primary);
+    }
+    nav#sidebar a .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+
+    /* ── Main content ──────────────────────────────────────────────── */
+    main {
+      flex: 1; min-width: 0;
+      padding: 2.5rem max(1.5rem, 4vw);
+      max-width: 860px;
+    }
+
+    /* ── Typography ────────────────────────────────────────────────── */
+    h1 { font-size: 2rem; font-weight: 800; margin-bottom: .5rem;
+         background: linear-gradient(90deg,#818cf8,#a78bfa);
+         -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    h2 { font-size: 1.4rem; font-weight: 700; margin: 2.5rem 0 .75rem;
+         padding-top: .5rem; border-top: 1px solid var(--border); color: var(--text); }
+    h3 { font-size: 1.05rem; font-weight: 600; margin: 1.75rem 0 .5rem; color: var(--text); }
+    h4 { font-size: .9rem; font-weight: 600; margin: 1.25rem 0 .4rem; color: var(--primary); }
+    p  { margin-bottom: .85rem; color: var(--text); }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 1.4rem; margin-bottom: .85rem; }
+    li { margin-bottom: .25rem; }
+    li::marker { color: var(--primary); }
+
+    /* ── Hero ──────────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, rgba(129,140,248,.08) 0%, rgba(167,139,250,.04) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 2rem 1.75rem;
+      margin-bottom: 2rem;
+    }
+    .hero-meta {
+      display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .25rem .6rem; border-radius: 999px;
+      font-size: .72rem; font-weight: 600; white-space: nowrap;
+    }
+    .badge-indigo { background: var(--primary-dim); color: var(--primary); }
+    .badge-green  { background: var(--accent-dim);  color: var(--accent);  }
+    .badge-yellow { background: var(--warn-dim);    color: var(--warn);    }
+    .badge-red    { background: rgba(248,113,113,.1); color: var(--danger); }
+
+    /* ── Cards ─────────────────────────────────────────────────────── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem;
+    }
+    .card-icon { font-size: 1.5rem; margin-bottom: .6rem; }
+    .card h4   { margin: 0 0 .35rem; color: var(--text); }
+    .card p    { font-size: .82rem; color: var(--muted); margin: 0; }
+
+    /* ── Code ──────────────────────────────────────────────────────── */
+    pre, code {
+      font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+      font-size: .82rem;
+    }
+    code:not(pre code) {
+      background: var(--code-bg); color: #a5b4fc;
+      padding: .1em .38em; border-radius: .3rem;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.2rem 1.4rem;
+      overflow-x: auto; margin: .85rem 0 1.2rem;
+      position: relative;
+    }
+    pre code { color: #e2e8f0; background: none; border: none; padding: 0; }
+    .kw  { color: #818cf8; }
+    .str { color: #34d399; }
+    .cmt { color: #475569; font-style: italic; }
+    .fn  { color: #fbbf24; }
+    .ty  { color: #f472b6; }
+    .num { color: #fb923c; }
+
+    /* ── Command table ─────────────────────────────────────────────── */
+    .cmd-table { width: 100%; border-collapse: collapse; margin: .85rem 0 1.4rem; font-size: .82rem; }
+    .cmd-table th {
+      text-align: left; padding: .55rem .85rem;
+      background: var(--surface-2); color: var(--muted);
+      font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .cmd-table td {
+      padding: .7rem .85rem; border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .cmd-table tr:last-child td { border-bottom: none; }
+    .cmd-table tr:hover td { background: var(--surface-2); }
+    .cmd-name { color: var(--primary); font-weight: 600; }
+    .cmd-ret  { color: var(--accent); }
+
+    /* ── Callout ───────────────────────────────────────────────────── */
+    .callout {
+      border-left: 3px solid; border-radius: .5rem;
+      padding: .9rem 1.1rem; margin: 1rem 0 1.4rem;
+      font-size: .85rem;
+    }
+    .callout.info    { border-color: var(--primary); background: var(--primary-dim); }
+    .callout.success { border-color: var(--accent);  background: var(--accent-dim); }
+    .callout.warn    { border-color: var(--warn);    background: var(--warn-dim); }
+    .callout strong  { display: block; margin-bottom: .25rem; }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    footer {
+      margin-top: 3rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: .78rem; color: var(--muted);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav#sidebar { display: none; }
+      main { padding: 1.5rem 1rem; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ═══════════════════════════ SIDEBAR ════════════════════════════ -->
+<nav id="sidebar" aria-label="Documentation navigation">
+  <div class="sidebar-brand">
+    <div class="brand-icon">ISM</div>
+    <div>
+      <div class="brand-name">ISM POS</div>
+      <div class="brand-sub">Developer Docs · v1.0.0</div>
+    </div>
+  </div>
+
+  <span class="nav-section">Getting Started</span>
+  <a href="#overview"><span class="dot"></span>Overview</a>
+  <a href="#stack"><span class="dot"></span>Tech Stack</a>
+  <a href="#setup"><span class="dot"></span>Setup &amp; Dev</a>
+  <a href="#project-structure"><span class="dot"></span>Project Structure</a>
+
+  <span class="nav-section">Architecture</span>
+  <a href="#frontend"><span class="dot"></span>Frontend (Next.js)</a>
+  <a href="#backend"><span class="dot"></span>Backend (Tauri/Rust)</a>
+  <a href="#ipc"><span class="dot"></span>IPC Bridge</a>
+  <a href="#state"><span class="dot"></span>State Management</a>
+
+  <span class="nav-section">API Reference</span>
+  <a href="#commands"><span class="dot"></span>Tauri Commands</a>
+  <a href="#stores"><span class="dot"></span>Zustand Stores</a>
+  <a href="#components"><span class="dot"></span>Components</a>
+  <a href="#config"><span class="dot"></span>Configuration</a>
+
+  <span class="nav-section">Operations</span>
+  <a href="#scripts"><span class="dot"></span>NPM Scripts</a>
+  <a href="#build"><span class="dot"></span>Production Build</a>
+  <a href="#icons"><span class="dot"></span>Icon Generation</a>
+</nav>
+
+<!-- ════════════════════════ MAIN CONTENT ═══════════════════════════ -->
+<main>
+
+  <!-- HERO ─────────────────────────────────────────────────────── -->
+  <section class="hero" id="overview">
+    <h1>ISM POS Documentation</h1>
+    <p>
+      A modern, fully offline-capable <strong>Point-of-Sale desktop application</strong> built
+      with Tauri 2, Next.js 16, shadcn/ui, Tailwind CSS v4, and Zustand. Ships as a
+      native Windows, macOS, or Linux binary with a zero-external-server architecture.
+    </p>
+    <div class="hero-meta">
+      <span class="badge badge-indigo">⚡ Tauri 2</span>
+      <span class="badge badge-indigo">⚛️ Next.js 16</span>
+      <span class="badge badge-green">🦀 Rust backend</span>
+      <span class="badge badge-yellow">🎨 Tailwind CSS v4</span>
+      <span class="badge badge-yellow">🐻 Zustand 5</span>
+      <span class="badge badge-indigo">🧩 shadcn/ui</span>
+    </div>
+  </section>
+
+  <!-- STACK ────────────────────────────────────────────────────── -->
+  <section id="stack">
+    <h2>Tech Stack</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h4>Tauri 2</h4>
+        <p>Native desktop shell. Hosts the Next.js static export in a WebView. Handles system-level IPC commands via Rust.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚛️</div>
+        <h4>Next.js 16 (static export)</h4>
+        <p>React 19 app compiled to a fully static HTML/JS bundle. No Node.js server required at runtime.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🦀</div>
+        <h4>Rust Backend</h4>
+        <p>Handles OS-level tasks: device info, versioning, health checks. Exposed to the UI via Tauri IPC commands.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <h4>Tailwind CSS v4</h4>
+        <p>Utility-first CSS with OKLCH colour tokens. Light/dark theme switching via <code>next-themes</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧩</div>
+        <h4>shadcn/ui + Radix</h4>
+        <p>Accessible, unstyled primitives (dialogs, sheets, dropdowns) styled with Tailwind. Fully copy-owned in <code>src/components/ui/</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🐻</div>
+        <h4>Zustand 5</h4>
+        <p>Lightweight global state for cart lines and UI flags. Cart is persisted to <code>localStorage</code> via the persist middleware.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP ────────────────────────────────────────────────────── -->
+  <section id="setup">
+    <h2>Setup &amp; Development</h2>
+
+    <h3>Prerequisites</h3>
+    <ul>
+      <li><strong>Node.js ≥ 20</strong> (LTS recommended)</li>
+      <li><strong>Rust + Cargo</strong> — install via <a href="https://rustup.rs" target="_blank">rustup.rs</a></li>
+      <li><strong>Tauri CLI</strong> — installed automatically as a devDependency</li>
+      <li>Windows: <strong>WebView2</strong> (pre-installed on Windows 11, available via Microsoft for Windows 10)</li>
+    </ul>
+
+    <h3>First-time setup</h3>
+    <pre><code><span class="cmt"># 1. Install JavaScript dependencies</span>
+<span class="fn">npm</span> install
+
+<span class="cmt"># 2. Generate application icons (pure Node, no canvas required)</span>
+<span class="fn">npm</span> run tauri:icon
+
+<span class="cmt"># 3. Start the full Tauri dev session (Next.js dev server + Rust watcher)</span>
+<span class="fn">npm</span> run tauri:dev</code></pre>
+
+    <h3>Frontend only (browser)</h3>
+    <pre><code><span class="fn">npm</span> run dev
+<span class="cmt"># Open http://localhost:3000</span></code></pre>
+
+    <div class="callout info">
+      <strong>ℹ️ Running in the browser</strong>
+      The app works fully in the browser. Tauri-specific features (device info, version badge) are gated by the
+      <code>isTauri()</code> guard in <code>src/lib/tauri.ts</code> and degrade gracefully.
+    </div>
+
+    <h3>View documentation</h3>
+    <pre><code><span class="fn">npm</span> run docs
+<span class="cmt"># Open http://localhost:4400</span></code></pre>
+  </section>
+
+  <!-- PROJECT STRUCTURE ─────────────────────────────────────────── -->
+  <section id="project-structure">
+    <h2>Project Structure</h2>
+    <pre><code>isms/
+├── src/                        <span class="cmt"># Next.js frontend</span>
+│   ├── app/
+│   │   ├── globals.css         <span class="cmt"># Tailwind v4 CSS tokens + base layer</span>
+│   │   ├── layout.tsx          <span class="cmt"># Root layout (font, providers, toaster)</span>
+│   │   └── page.tsx            <span class="cmt"># POS home page</span>
+│   ├── components/
+│   │   ├── layout/             <span class="cmt"># AppShell, Sidebar, Topbar</span>
+│   │   ├── pos/                <span class="cmt"># ProductGrid, ProductCard, CartPanel, …</span>
+│   │   ├── providers/          <span class="cmt"># AppProviders (ThemeProvider)</span>
+│   │   └── ui/                 <span class="cmt"># shadcn/ui components (copy-owned)</span>
+│   ├── config/
+│   │   ├── products.ts         <span class="cmt"># Seed data — categories + products</span>
+│   │   └── site.ts             <span class="cmt"># App-wide config (nav, tax rate, currency)</span>
+│   ├── hooks/
+│   │   └── use-media-query.ts  <span class="cmt"># Responsive breakpoint hook</span>
+│   ├── lib/
+│   │   ├── format.ts           <span class="cmt"># Currency / number / date formatters</span>
+│   │   ├── tauri.ts            <span class="cmt"># Typed IPC wrappers + isTauri() guard</span>
+│   │   └── utils.ts            <span class="cmt"># cn() classname helper</span>
+│   ├── store/
+│   │   ├── cart-store.ts       <span class="cmt"># Cart state (Zustand + persist)</span>
+│   │   └── ui-store.ts         <span class="cmt"># Search / category / drawer state</span>
+│   └── types/
+│       └── index.ts            <span class="cmt"># Shared TypeScript types</span>
+├── src-tauri/                  <span class="cmt"># Tauri / Rust backend</span>
+│   ├── src/
+│   │   ├── commands.rs         <span class="cmt"># Tauri command handlers</span>
+│   │   ├── lib.rs              <span class="cmt"># App entry point + command registration</span>
+│   │   └── main.rs             <span class="cmt"># Binary entry point</span>
+│   ├── capabilities/           <span class="cmt"># Tauri 2 capability JSON files</span>
+│   ├── icons/                  <span class="cmt"># Generated app icons</span>
+│   ├── Cargo.toml
+│   └── tauri.conf.json
+├── scripts/
+│   ├── generate-icons.mjs      <span class="cmt"># Zero-dep icon generator</span>
+│   └── serve-docs.mjs          <span class="cmt"># Static docs server</span>
+├── docs/
+│   └── index.html              <span class="cmt"># This file</span>
+├── next.config.ts
+└── package.json</code></pre>
+  </section>
+
+  <!-- FRONTEND ─────────────────────────────────────────────────── -->
+  <section id="frontend">
+    <h2>Frontend Architecture</h2>
+
+    <h3>Rendering model</h3>
+    <p>
+      Next.js is configured with <code>output: "export"</code>, which compiles the entire app
+      into a static <code>/out</code> directory. Tauri's <code>frontendDist</code> points to
+      this directory for production builds. No Node.js server is needed at runtime.
+    </p>
+
+    <h3>Routing</h3>
+    <p>
+      The app currently uses a single-page architecture. The root route (<code>/</code>) renders
+      the full POS experience via <code>AppShell</code>. Additional routes (Dashboard, Orders,
+      etc.) are stubs in the nav config and will be wired to separate Next.js pages in future sprints.
+    </p>
+
+    <h3>Theme system</h3>
+    <p>
+      Colour tokens are defined as OKLCH CSS custom properties in <code>globals.css</code>.
+      The <code>AppProviders</code> component wraps the app in <code>next-themes</code>
+      <code>ThemeProvider</code>, which toggles the <code>.dark</code> class on <code>&lt;html&gt;</code>.
+      The theme toggle button in the <code>Topbar</code> calls <code>setTheme()</code>.
+    </p>
+  </section>
+
+  <!-- BACKEND ──────────────────────────────────────────────────── -->
+  <section id="backend">
+    <h2>Backend Architecture</h2>
+    <p>
+      The Rust backend lives in <code>src-tauri/src/</code>. It exposes a small set of
+      <strong>Tauri commands</strong> (RPC handlers) that the frontend calls via the IPC bridge.
+      The backend has no database — all transactional state lives in the frontend stores. Future
+      sprints may add SQLite via <code>tauri-plugin-sql</code>.
+    </p>
+
+    <h3>Entry points</h3>
+    <ul>
+      <li><code>main.rs</code> — binary entry point; calls <code>lib::run()</code></li>
+      <li><code>lib.rs</code> — registers plugins and command handlers with <code>tauri::Builder</code></li>
+      <li><code>commands.rs</code> — all <code>#[tauri::command]</code> implementations</li>
+    </ul>
+  </section>
+
+  <!-- IPC ──────────────────────────────────────────────────────── -->
+  <section id="ipc">
+    <h2>IPC Bridge</h2>
+    <p>
+      Communication between the WebView (TypeScript) and the Rust process uses
+      <strong>Tauri's typed invoke API</strong>. The frontend wrappers in <code>src/lib/tauri.ts</code>
+      provide a clean, promise-based API.
+    </p>
+    <pre><code><span class="cmt">// TypeScript side</span>
+<span class="kw">import</span> { invoke } <span class="kw">from</span> <span class="str">"@tauri-apps/api/core"</span>;
+
+<span class="kw">export async function</span> <span class="fn">getAppVersion</span>(): <span class="ty">Promise</span>&lt;<span class="ty">string</span>&gt; {
+  <span class="kw">return</span> invoke&lt;<span class="ty">string</span>&gt;(<span class="str">"get_app_version"</span>);
+}
+
+<span class="cmt">// Rust side (commands.rs)</span>
+<span class="kw">#[tauri::command]</span>
+<span class="kw">pub fn</span> <span class="fn">get_app_version</span>() -&gt; <span class="ty">String</span> {
+    option_env!(<span class="str">"CARGO_PKG_VERSION"</span>)
+        .unwrap_or(<span class="str">"unknown"</span>)
+        .to_string()
+}</code></pre>
+
+    <div class="callout success">
+      <strong>✅ isTauri() guard</strong>
+      All IPC calls are wrapped with <code>isTauri()</code> which detects
+      <code>window.__TAURI_INTERNALS__</code>. If the app runs in the browser, IPC calls are
+      skipped and the UI degrades gracefully (no version badge, demo-mode checkout toast).
+    </div>
+  </section>
+
+  <!-- STATE ────────────────────────────────────────────────────── -->
+  <section id="state">
+    <h2>State Management</h2>
+    <p>
+      Global state is managed with <strong>Zustand 5</strong>. Two stores are used:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <h4>useCartStore</h4>
+        <p>Cart lines, payment method, add/remove/update/clear/checkout. Persisted to <code>localStorage</code> under the key <code>ism-pos-cart</code>.</p>
+      </div>
+      <div class="card">
+        <h4>useUiStore</h4>
+        <p>Search query, active category filter, cart sheet open state, sidebar sheet open state. Not persisted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMANDS ─────────────────────────────────────────────────── -->
+  <section id="commands">
+    <h2>Tauri IPC Commands</h2>
+    <p>
+      All commands are registered in <code>src-tauri/src/lib.rs</code> and implemented in
+      <code>commands.rs</code>. Call them from TypeScript via the wrappers in
+      <code>src/lib/tauri.ts</code>.
+    </p>
+
+    <table class="cmd-table" aria-label="Tauri IPC commands">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Arguments</th>
+          <th>Returns</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="cmd-name">greet</span></td>
+          <td><code>name: string</code></td>
+          <td><span class="cmd-ret">string</span></td>
+          <td>Classic smoke-test. Returns a greeting confirming the desktop shell is alive.</td>
+        </tr>
+        <tr>
+          <td><span class="cmd-name">get_app_version</span></td>
+          <td>—</td>
+          <td><span class="cmd-ret">string</span></td>
+          <td>Returns the <code>CARGO_PKG_VERSION</code> at compile time, displayed in the Topbar.</td>
+        </tr>
+        <tr>
+          <td><span class="cmd-name">get_device_info</span></td>
+          <td>—</td>
+          <td><span class="cmd-ret">DeviceInfo</span></td>
+          <td>Returns OS name, platform, architecture and a rough uptime value for display in system diagnostics.</td>
+        </tr>
+        <tr>
+          <td><span class="cmd-name">ping</span></td>
+          <td>—</td>
+          <td><span class="cmd-ret">PingResponse</span></td>
+          <td>Health check used during checkout to confirm the IPC bridge is live. Returns <code>{ ok: true, message, timestamp }</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>DeviceInfo</h3>
+    <pre><code><span class="kw">interface</span> <span class="ty">DeviceInfo</span> {
+  name: <span class="ty">string</span>;         <span class="cmt">// COMPUTERNAME / HOSTNAME</span>
+  platform: <span class="ty">string</span>;     <span class="cmt">// "windows" | "macos" | "linux"</span>
+  version: <span class="ty">string</span>;      <span class="cmt">// currently maps to arch (future: OS build)</span>
+  arch: <span class="ty">string</span>;         <span class="cmt">// "x86_64" | "aarch64"</span>
+  uptime_seconds: <span class="ty">number</span>;
+}</code></pre>
+
+    <h3>PingResponse</h3>
+    <pre><code><span class="kw">interface</span> <span class="ty">PingResponse</span> {
+  ok: <span class="ty">boolean</span>;       <span class="cmt">// always true when reachable</span>
+  message: <span class="ty">string</span>;   <span class="cmt">// "Pong — Rust backend reachable"</span>
+  timestamp: <span class="ty">number</span>; <span class="cmt">// Unix epoch seconds</span>
+}</code></pre>
+  </section>
+
+  <!-- STORES ───────────────────────────────────────────────────── -->
+  <section id="stores">
+    <h2>Zustand Stores</h2>
+
+    <h3>useCartStore</h3>
+    <p>File: <code>src/store/cart-store.ts</code></p>
+
+    <table class="cmd-table" aria-label="Cart store API">
+      <thead>
+        <tr><th>Member</th><th>Type</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="cmd-name">lines</span></td><td><span class="cmd-ret">CartLine[]</span></td><td>Array of cart line items.</td></tr>
+        <tr><td><span class="cmd-name">method</span></td><td><span class="cmd-ret">SaleMethod</span></td><td>Selected payment method: <code>"cash" | "card" | "mobile"</code>.</td></tr>
+        <tr><td><span class="cmd-name">addItem()</span></td><td><span class="cmd-ret">void</span></td><td>Add a product or increment its quantity (max 99).</td></tr>
+        <tr><td><span class="cmd-name">removeItem()</span></td><td><span class="cmd-ret">void</span></td><td>Remove a product line entirely.</td></tr>
+        <tr><td><span class="cmd-name">updateQuantity()</span></td><td><span class="cmd-ret">void</span></td><td>Set exact quantity; quantity ≤ 0 removes the line.</td></tr>
+        <tr><td><span class="cmd-name">clear()</span></td><td><span class="cmd-ret">void</span></td><td>Empty the entire cart.</td></tr>
+        <tr><td><span class="cmd-name">setMethod()</span></td><td><span class="cmd-ret">void</span></td><td>Change the payment method.</td></tr>
+        <tr><td><span class="cmd-name">checkout()</span></td><td><span class="cmd-ret">CheckoutReceipt | null</span></td><td>Finalise the sale, clear the cart, return a receipt object.</td></tr>
+        <tr><td><span class="cmd-name">selectCartCount</span></td><td><span class="cmd-ret">selector</span></td><td>Total item count across all lines (for badge display).</td></tr>
+        <tr><td><span class="cmd-name">selectSubtotal</span></td><td><span class="cmd-ret">selector</span></td><td>Pre-tax total value of the cart.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>useUiStore</h3>
+    <p>File: <code>src/store/ui-store.ts</code></p>
+
+    <table class="cmd-table" aria-label="UI store API">
+      <thead>
+        <tr><th>Member</th><th>Type</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="cmd-name">search</span></td><td><span class="cmd-ret">string</span></td><td>Current search query text.</td></tr>
+        <tr><td><span class="cmd-name">activeCategory</span></td><td><span class="cmd-ret">string</span></td><td>Selected category ID (default: <code>"all"</code>).</td></tr>
+        <tr><td><span class="cmd-name">cartOpen</span></td><td><span class="cmd-ret">boolean</span></td><td>Controls the mobile cart sheet.</td></tr>
+        <tr><td><span class="cmd-name">sidebarOpen</span></td><td><span class="cmd-ret">boolean</span></td><td>Controls the mobile sidebar sheet.</td></tr>
+        <tr><td><span class="cmd-name">selectFilteredProducts()</span></td><td><span class="cmd-ret">Product[]</span></td><td>Pure function — filter products by active category and search string.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- COMPONENTS ───────────────────────────────────────────────── -->
+  <section id="components">
+    <h2>Key Components</h2>
+
+    <h4>AppShell</h4>
+    <p>
+      <code>src/components/layout/app-shell.tsx</code><br />
+      Root layout wrapper. Renders the desktop three-column layout (Sidebar + main + CartPanel)
+      and mobile sheet overlays. Reads <code>sidebarOpen</code> / <code>cartOpen</code> from
+      <code>useUiStore</code>.
+    </p>
+
+    <h4>Sidebar</h4>
+    <p>
+      <code>src/components/layout/sidebar.tsx</code><br />
+      Icon-only on small screens, full-width on <code>lg+</code>. Nav items driven by
+      <code>siteConfig.nav</code>. Shows operator name and version at the bottom.
+    </p>
+
+    <h4>Topbar</h4>
+    <p>
+      <code>src/components/layout/topbar.tsx</code><br />
+      Sticky header with page title, search input (hidden on mobile), dark-mode toggle, and a
+      cart button for mobile users. Fetches app version from Tauri on mount.
+    </p>
+
+    <h4>ProductGrid</h4>
+    <p>
+      <code>src/components/pos/product-grid.tsx</code><br />
+      Renders <code>CategoryFilter</code> + a responsive grid of <code>ProductCard</code>s.
+      Shows skeleton loaders for 350 ms on first paint. Filtered by <code>selectFilteredProducts</code>.
+    </p>
+
+    <h4>ProductCard</h4>
+    <p>
+      <code>src/components/pos/product-card.tsx</code><br />
+      Emoji tile with gradient background, product name, description, price, and a quick-add
+      button. Calls <code>addItem()</code> on click.
+    </p>
+
+    <h4>CartPanel</h4>
+    <p>
+      <code>src/components/pos/cart-panel.tsx</code><br />
+      Scrollable list of <code>CartItemRow</code>s, subtotal / tax / total summary, payment
+      method selector, and a charge button. Calls <code>pingBackend()</code> on checkout to
+      detect desktop mode.
+    </p>
+
+    <h4>StatsBar</h4>
+    <p>
+      <code>src/components/pos/stats-bar.tsx</code><br />
+      Four KPI cards (Today's Sales, Orders, Avg. Order, Items Sold) with trend indicators.
+      Currently uses static seed data; wire to a Rust command or API in a future sprint.
+    </p>
+  </section>
+
+  <!-- CONFIG ───────────────────────────────────────────────────── -->
+  <section id="config">
+    <h2>Configuration</h2>
+
+    <h3>siteConfig — <code>src/config/site.ts</code></h3>
+    <table class="cmd-table" aria-label="Site config properties">
+      <thead><tr><th>Key</th><th>Value</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="cmd-name">taxRate</span></td><td><code>0.08</code></td><td>Applied on top of cart subtotal (8%).</td></tr>
+        <tr><td><span class="cmd-name">nav</span></td><td><code>NavItem[]</code></td><td>Sidebar navigation items (label, href, icon).</td></tr>
+        <tr><td><span class="cmd-name">paymentMethods</span></td><td><code>["cash","card","mobile"]</code></td><td>Methods shown in the cart panel toggle.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Products — <code>src/config/products.ts</code></h3>
+    <p>
+      Contains 22 demo products across 6 categories. Each product has:
+      <code>id</code>, <code>name</code>, <code>description</code>, <code>price</code>,
+      <code>categoryId</code>, <code>emoji</code>, <code>accent</code> (Tailwind gradient classes),
+      <code>popular</code>, and <code>stock</code>.
+    </p>
+  </section>
+
+  <!-- SCRIPTS ──────────────────────────────────────────────────── -->
+  <section id="scripts">
+    <h2>NPM Scripts</h2>
+    <table class="cmd-table" aria-label="NPM scripts">
+      <thead><tr><th>Script</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="cmd-name">npm run dev</span></td><td>Start Next.js dev server on port 3000.</td></tr>
+        <tr><td><span class="cmd-name">npm run build</span></td><td>Build the static Next.js export into <code>/out</code>.</td></tr>
+        <tr><td><span class="cmd-name">npm run tauri:dev</span></td><td>Start the full Tauri dev session (hot-reload).</td></tr>
+        <tr><td><span class="cmd-name">npm run tauri:build</span></td><td>Build the production native installer.</td></tr>
+        <tr><td><span class="cmd-name">npm run tauri:icon</span></td><td>Regenerate all application icons from scratch.</td></tr>
+        <tr><td><span class="cmd-name">npm run docs</span></td><td>Start the static docs server on port 4400.</td></tr>
+        <tr><td><span class="cmd-name">npm run lint</span></td><td>Run ESLint across the <code>src/</code> directory.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- BUILD ────────────────────────────────────────────────────── -->
+  <section id="build">
+    <h2>Production Build</h2>
+    <pre><code><span class="cmt"># 1. Build the static frontend</span>
+<span class="fn">npm</span> run build
+
+<span class="cmt"># 2. Build and bundle the native app (creates installer in src-tauri/target/release/bundle/)</span>
+<span class="fn">npm</span> run tauri:build</code></pre>
+
+    <div class="callout warn">
+      <strong>⚠️ Static export requirement</strong>
+      Because <code>next.config.ts</code> sets <code>output: "export"</code>, you cannot use
+      Next.js Server Components, API Routes, or Server Actions. All data must be
+      client-side or passed via Tauri IPC commands.
+    </div>
+
+    <h3>Output artifacts</h3>
+    <ul>
+      <li><code>out/</code> — Static HTML/JS/CSS bundle consumed by Tauri</li>
+      <li><code>src-tauri/target/release/bundle/msi/</code> — Windows installer (.msi)</li>
+      <li><code>src-tauri/target/release/bundle/nsis/</code> — Windows NSIS installer</li>
+      <li><code>src-tauri/target/release/bundle/dmg/</code> — macOS disk image</li>
+      <li><code>src-tauri/target/release/bundle/deb/</code> — Debian package</li>
+    </ul>
+  </section>
+
+  <!-- ICONS ────────────────────────────────────────────────────── -->
+  <section id="icons">
+    <h2>Icon Generation</h2>
+    <p>
+      Icons are generated by <code>scripts/generate-icons.mjs</code> — a zero-dependency
+      Node.js script that synthesises RGBA PNG buffers and wraps them into
+      <code>.ico</code> (Windows) and <code>.icns</code> (macOS) containers using only
+      Node built-in modules (<code>zlib</code>, <code>fs</code>).
+    </p>
+    <h3>Generated files</h3>
+    <ul>
+      <li><code>src-tauri/icons/32x32.png</code></li>
+      <li><code>src-tauri/icons/128x128.png</code></li>
+      <li><code>src-tauri/icons/128x128@2x.png</code></li>
+      <li><code>src-tauri/icons/icon.png</code> (512 × 512 source)</li>
+      <li><code>src-tauri/icons/icon.ico</code> (Windows)</li>
+      <li><code>src-tauri/icons/icon.icns</code> (macOS)</li>
+      <li>Windows Store variants: <code>Square30x30Logo.png</code>, <code>Square44x44Logo.png</code>, <code>Square107x107Logo.png</code>, <code>StoreLogo.png</code></li>
+    </ul>
+    <div class="callout info">
+      <strong>ℹ️ Customising the icon</strong>
+      Edit the <code>ACCENT</code> / <code>ACCENT_2</code> / <code>BG</code> constants and the
+      <code>rgbaPixel()</code> function in <code>generate-icons.mjs</code>, then re-run
+      <code>npm run tauri:icon</code>.
+    </div>
+  </section>
+
+  <footer>
+    <span>ISM POS v1.0.0 — Developer Documentation</span>
+    <span>Built with Tauri 2 + Next.js 16 + Rust</span>
+  </footer>
+
+</main>
+
+<script>
+  // Highlight active nav link based on scroll position
+  const links = document.querySelectorAll('nav#sidebar a');
+  const sections = document.querySelectorAll('main section[id]');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav#sidebar a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
