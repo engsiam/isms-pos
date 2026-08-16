@@ -2,15 +2,28 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { CartLine, CheckoutReceipt, SaleMethod } from "@/types";
 
+interface Customer {
+  id: string;
+  name: string;
+  mobile?: string;
+  points?: number;
+}
+
 interface CartState {
   lines: CartLine[];
   method: SaleMethod;
   discount: number;
+  taxRate: number;
   note: string;
+  customer: Customer;
+  customers: Customer[];
+  setCustomer: (customer: Customer) => void;
+  addCustomer: (name: string, mobile?: string) => Customer;
   addItem: (productId: string, name: string, emoji: string, barcode: string, unitPrice: number, image?: string) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   setDiscount: (discount: number) => void;
+  setTaxRate: (rate: number) => void;
   setNote: (note: string) => void;
   clear: () => void;
   setMethod: (method: SaleMethod) => void;
@@ -18,6 +31,13 @@ interface CartState {
 }
 
 const MAX_LINE_QTY = 99;
+
+const DEFAULT_CUSTOMERS: Customer[] = [
+  { id: "cust-1", name: "Walk-in Customer", mobile: "01700000000", points: 0 },
+  { id: "cust-2", name: "Rahim Uddin", mobile: "01812345678", points: 150 },
+  { id: "cust-3", name: "Karim Chowdhury", mobile: "01998765432", points: 320 },
+  { id: "cust-4", name: "Fatema Begum", mobile: "01555443322", points: 80 },
+];
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -50,7 +70,26 @@ export const useCartStore = create<CartState>()(
       ],
       method: "cash",
       discount: 30.0,
+      taxRate: 0.0,
       note: "",
+      customer: DEFAULT_CUSTOMERS[0],
+      customers: DEFAULT_CUSTOMERS,
+
+      setCustomer: (customer) => set({ customer }),
+
+      addCustomer: (name, mobile) => {
+        const newCust: Customer = {
+          id: `cust-${Date.now()}`,
+          name,
+          mobile: mobile || "N/A",
+          points: 0,
+        };
+        set((state) => ({
+          customers: [...state.customers, newCust],
+          customer: newCust,
+        }));
+        return newCust;
+      },
 
       addItem: (productId, name, emoji, barcode, unitPrice, image) =>
         set((state) => {
@@ -90,6 +129,7 @@ export const useCartStore = create<CartState>()(
         })),
 
       setDiscount: (discount) => set({ discount }),
+      setTaxRate: (taxRate) => set({ taxRate }),
       setNote: (note) => set({ note }),
 
       clear: () => set({ lines: [], discount: 0, note: "" }),
@@ -97,20 +137,21 @@ export const useCartStore = create<CartState>()(
       setMethod: (method) => set({ method }),
 
       checkout: () => {
-        const { lines, method, discount } = get();
+        const { lines, discount, taxRate } = get();
         if (lines.length === 0) return null;
 
         const subtotal = lines.reduce(
           (sum, line) => sum + line.unitPrice * line.quantity,
           0
         );
-        const total = Math.max(0, subtotal - discount);
+        const tax = subtotal * taxRate;
+        const total = Math.max(0, subtotal - discount + tax);
 
         const receipt: CheckoutReceipt = {
           id: `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${Math.floor(10000 + Math.random() * 90000)}`,
           lines: lines.map((line) => ({ ...line })),
           subtotal,
-          tax: 0,
+          tax,
           total,
           createdAt: new Date().toISOString(),
         };
@@ -120,9 +161,15 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: "sopno-pos-cart",
+      name: "sopno-pos-cart-v2",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ lines: state.lines, method: state.method, discount: state.discount }),
+      partialize: (state) => ({
+        lines: state.lines,
+        method: state.method,
+        discount: state.discount,
+        customer: state.customer,
+        customers: state.customers,
+      }),
     }
   )
 );
