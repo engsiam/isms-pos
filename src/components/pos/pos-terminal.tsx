@@ -3,6 +3,7 @@
 import * as React from "react";
 import { PosHeader } from "@/components/pos/pos-header";
 import { PosTransactionBar } from "@/components/pos/pos-transaction-bar";
+import { PosProductPanel } from "@/components/pos/pos-product-panel";
 import { PosItemTable } from "@/components/pos/pos-item-table";
 import { PosTotalsPanel } from "@/components/pos/pos-totals-panel";
 import { PosFooter } from "@/components/pos/pos-footer";
@@ -14,11 +15,12 @@ export function POSTerminal() {
       <PosHeader />
 
       {/* ── Main POS Workspace ──────────────────────── */}
-      <main className="flex-1 p-5 overflow-hidden flex flex-col min-h-0">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 min-h-0">
-          {/* Left Column: Controls + Cart Table */}
-          <div className="flex flex-col min-w-0 min-h-0">
+      <main className="flex-1 p-4 overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 min-h-0">
+          {/* Left Column: Controls + Product Panel + Cart Table */}
+          <div className="flex flex-col min-w-0 min-h-0 gap-3">
             <PosTransactionBar />
+            <PosProductPanel />
             <PosItemTable />
           </div>
 

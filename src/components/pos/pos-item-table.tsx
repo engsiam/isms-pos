@@ -1,45 +1,101 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, RotateCcw, Pause } from "lucide-react";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { useCartStore } from "@/store/cart-store";
 
 export function PosItemTable() {
-  const { lines, updateQuantity, removeItem, clear, note, setNote } = useCartStore();
+  const { lines, updateQuantity, removeItem, clear, loadDefaultItems, note, setNote } = useCartStore();
   const [showNoteInput, setShowNoteInput] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleHoldOrder = React.useCallback(() => {
+    if (lines.length === 0) return;
+    toast.info("Order #HOLD-240513 has been put on hold!");
+    clear();
+  }, [lines, clear]);
+
+  // Keybindings F8 for Hold
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F8") {
+        e.preventDefault();
+        handleHoldOrder();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleHoldOrder]);
+
+  const cartLines = mounted ? lines : [];
 
   return (
-    <div className="flex flex-col flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors duration-300">
+    <div className="flex flex-col flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden transition-colors duration-300 min-h-0">
       {/* ── Cart Header ───────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-extrabold text-slate-800 dark:text-white tracking-tight">CART</h2>
+          <h2 className="text-sm font-extrabold text-slate-800 dark:text-white tracking-tight">CART</h2>
           <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-            ({lines.length} {lines.length === 1 ? "Item" : "Items"})
+            ({cartLines.length} {cartLines.length === 1 ? "Item" : "Items"})
           </span>
         </div>
 
-        {lines.length > 0 && (
-          <button
-            onClick={() => clear()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors"
-          >
-            <Trash2 className="size-3.5" />
-            <span>Clear Cart</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {cartLines.length > 0 && (
+            <button
+              onClick={handleHoldOrder}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/40 hover:bg-blue-100/70 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors cursor-pointer"
+              title="Hold Order (F8)"
+            >
+              <Pause className="size-3.5 fill-current" />
+              <span>Hold (F8)</span>
+            </button>
+          )}
+
+          {cartLines.length === 0 && (
+            <button
+              onClick={() => loadDefaultItems()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-[11px] font-bold transition-colors cursor-pointer"
+            >
+              <RotateCcw className="size-3" />
+              <span>Load Default Items</span>
+            </button>
+          )}
+
+          {cartLines.length > 0 && (
+            <button
+              onClick={() => clear()}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/40 hover:bg-rose-100/70 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Clear Cart</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Cart Table Content ────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        {lines.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-400 dark:text-slate-500 gap-2">
-            <div className="size-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
-              <ShoppingBag className="size-7" />
+        {cartLines.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-44 text-slate-400 dark:text-slate-500 gap-2">
+            <div className="size-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+              <ShoppingBag className="size-6" />
             </div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Your cart is empty</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Scan a barcode or click search to add products</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Your cart is empty</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">Scan a barcode, select from catalogue above, or load sample data</p>
+            <button
+              onClick={() => loadDefaultItems()}
+              className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+            >
+              <RotateCcw className="size-3.5" />
+              <span>Load Default Sample Items</span>
+            </button>
           </div>
         ) : (
           <table className="w-full text-left text-xs border-collapse">
@@ -55,7 +111,7 @@ export function PosItemTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {lines.map((line, idx) => {
+              {cartLines.map((line, idx) => {
                 const lineTotal = line.unitPrice * line.quantity;
                 return (
                   <tr

@@ -9,7 +9,7 @@ interface Customer {
   points?: number;
 }
 
-interface CartState {
+export interface CartState {
   lines: CartLine[];
   method: SaleMethod;
   discount: number;
@@ -26,11 +26,39 @@ interface CartState {
   setTaxRate: (rate: number) => void;
   setNote: (note: string) => void;
   clear: () => void;
+  loadDefaultItems: () => void;
   setMethod: (method: SaleMethod) => void;
   checkout: () => CheckoutReceipt | null;
 }
 
 const MAX_LINE_QTY = 99;
+
+export const DEFAULT_LINES: CartLine[] = [
+  {
+    productId: "prd-miniket-5kg",
+    name: "Rice Miniket 5kg",
+    emoji: "🌾",
+    barcode: "2400153",
+    unitPrice: 350.0,
+    quantity: 2,
+  },
+  {
+    productId: "prd-soyabean-1l",
+    name: "Fresh Soyabean Oil 1L",
+    emoji: "🍾",
+    barcode: "6000132",
+    unitPrice: 180.0,
+    quantity: 1,
+  },
+  {
+    productId: "prd-lifebuoy-125g",
+    name: "Lifebuoy Soap 125g",
+    emoji: "🧼",
+    barcode: "2400165",
+    unitPrice: 50.0,
+    quantity: 3,
+  },
+];
 
 const DEFAULT_CUSTOMERS: Customer[] = [
   { id: "cust-1", name: "Walk-in Customer", mobile: "01700000000", points: 0 },
@@ -42,32 +70,7 @@ const DEFAULT_CUSTOMERS: Customer[] = [
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
-      lines: [
-        {
-          productId: "prd-miniket-5kg",
-          name: "Rice Miniket 5kg",
-          emoji: "🌾",
-          barcode: "2400153",
-          unitPrice: 350.0,
-          quantity: 2,
-        },
-        {
-          productId: "prd-soyabean-1l",
-          name: "Fresh Soyabean Oil 1L",
-          emoji: "🍾",
-          barcode: "6000132",
-          unitPrice: 180.0,
-          quantity: 1,
-        },
-        {
-          productId: "prd-lifebuoy-125g",
-          name: "Lifebuoy Soap 125g",
-          emoji: "🧼",
-          barcode: "2400165",
-          unitPrice: 50.0,
-          quantity: 3,
-        },
-      ],
+      lines: DEFAULT_LINES,
       method: "cash",
       discount: 30.0,
       taxRate: 0.0,
@@ -133,6 +136,8 @@ export const useCartStore = create<CartState>()(
       setNote: (note) => set({ note }),
 
       clear: () => set({ lines: [], discount: 0, note: "" }),
+
+      loadDefaultItems: () => set({ lines: DEFAULT_LINES, discount: 30.0, note: "" }),
 
       setMethod: (method) => set({ method }),
 

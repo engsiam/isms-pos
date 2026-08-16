@@ -1,17 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Calculator, CreditCard, Banknote, MoreHorizontal, Printer, X, Receipt } from "lucide-react";
+import { CheckCircle2, Calculator, Printer, X, Receipt, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { useCartStore, selectSubtotal } from "@/store/cart-store";
 import { useSalesStore, type SaleRecord } from "@/store/sales-store";
 import type { SaleMethod } from "@/types";
+import { CashIcon, BkashIcon, NagadIcon, CardIcon, OtherPaymentIcon } from "@/components/ui/payment-icons";
 
 export function PosTotalsPanel() {
-  const { lines, discount, taxRate, customer, checkout, setDiscount, setTaxRate } = useCartStore();
+  const { lines, discount, taxRate, customer, checkout, setDiscount, setTaxRate, clear } = useCartStore();
   const { addSale, selectedOutlet, selectedCashier } = useSalesStore();
   const subtotal = useCartStore(selectSubtotal);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const cartLines = mounted ? lines : [];
 
   const [paymentMethod, setPaymentMethod] = React.useState<SaleMethod>("cash");
   const [receivedInput, setReceivedInput] = React.useState<string>("1200");
@@ -33,7 +41,7 @@ export function PosTotalsPanel() {
     setDiscount(discountVal);
   }, [discountVal, setDiscount]);
 
-  const handleCompleteSale = async () => {
+  const handleCompleteSale = React.useCallback(async () => {
     if (lines.length === 0) {
       toast.error("Cart is empty — add products first!");
       return;
@@ -73,7 +81,39 @@ export function PosTotalsPanel() {
       </div>,
       { duration: 4000 }
     );
-  };
+  }, [lines, amountReceived, total, checkout, customer, paymentMethod, change, selectedOutlet, selectedCashier, addSale]);
+
+  const handleNewInvoice = React.useCallback(() => {
+    clear();
+    setDiscountInput("0");
+    setReceivedInput("0");
+    toast.info("New Invoice session started");
+  }, [clear]);
+
+  // Keybindings F9 (Payment), F10 (Complete Sale), Ctrl+P (Print), F11 (New Invoice)
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "F10") {
+        e.preventDefault();
+        handleCompleteSale();
+      } else if (e.key === "F11") {
+        e.preventDefault();
+        handleNewInvoice();
+      } else if (e.key === "F9") {
+        e.preventDefault();
+        const methods: SaleMethod[] = ["cash", "card", "bkash", "nagad", "other"];
+        setPaymentMethod((prev) => {
+          const idx = methods.indexOf(prev);
+          return methods[(idx + 1) % methods.length];
+        });
+      } else if (e.ctrlKey && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        window.print();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleCompleteSale, handleNewInvoice]);
 
   return (
     <>
@@ -183,7 +223,7 @@ export function PosTotalsPanel() {
             <div className="flex justify-between items-center">
               <span>Items</span>
               <span className="font-extrabold text-slate-800 dark:text-white tabular-nums">
-                {lines.reduce((s, l) => s + l.quantity, 0)}
+                {cartLines.reduce((s, l) => s + l.quantity, 0)}
               </span>
             </div>
 
@@ -234,70 +274,62 @@ export function PosTotalsPanel() {
             </span>
           </div>
 
-          {/* ── PAYMENT METHOD ─────────────────────────────── */}
-          <div className="mb-5">
+          {/* ── PAYMENT METHOD (F9) ─────────────────────────── */}
+          <div className="mb-4">
             <h4 className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
-              PAYMENT METHOD
+              PAYMENT METHOD (F9)
             </h4>
 
             <div className="grid grid-cols-2 gap-2">
               {/* Cash */}
               <button
                 onClick={() => setPaymentMethod("cash")}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
                   paymentMethod === "cash"
-                    ? "border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/50 text-blue-900 dark:text-blue-100 shadow-2xs ring-2 ring-blue-500/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                    ? "border-emerald-500 dark:border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shadow-sm ring-2 ring-emerald-500/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300 dark:hover:border-emerald-800"
                 }`}
               >
-                <div className="size-5 rounded-md bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <Banknote className="size-3" />
-                </div>
+                <CashIcon className="size-5 shrink-0 shadow-xs" />
                 <span>Cash</span>
               </button>
 
               {/* Card */}
               <button
                 onClick={() => setPaymentMethod("card")}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
                   paymentMethod === "card"
-                    ? "border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/50 text-blue-900 dark:text-blue-100 shadow-2xs ring-2 ring-blue-500/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                    ? "border-blue-600 dark:border-blue-500 bg-blue-500/10 text-blue-900 dark:text-blue-100 shadow-sm ring-2 ring-blue-500/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-blue-300 dark:hover:border-blue-800"
                 }`}
               >
-                <div className="size-5 rounded-md bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                  <CreditCard className="size-3" />
-                </div>
+                <CardIcon className="size-5 shrink-0 shadow-xs" />
                 <span>Card</span>
               </button>
 
               {/* bKash */}
               <button
                 onClick={() => setPaymentMethod("bkash")}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
                   paymentMethod === "bkash"
-                    ? "border-pink-600 dark:border-pink-500 bg-pink-50/50 dark:bg-pink-950/50 text-pink-900 dark:text-pink-100 shadow-2xs ring-2 ring-pink-500/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                    ? "border-pink-600 dark:border-pink-500 bg-pink-500/10 text-pink-900 dark:text-pink-100 shadow-sm ring-2 ring-pink-500/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-pink-300 dark:hover:border-pink-800"
                 }`}
               >
-                <div className="size-5 rounded-md bg-pink-100 dark:bg-pink-950 flex items-center justify-center text-pink-600 dark:text-pink-400 font-black text-[9px]">
-                  bK
-                </div>
+                <BkashIcon className="size-5 shrink-0 shadow-xs" />
                 <span>bKash</span>
               </button>
 
               {/* Nagad */}
               <button
                 onClick={() => setPaymentMethod("nagad")}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer ${
                   paymentMethod === "nagad"
-                    ? "border-orange-600 dark:border-orange-500 bg-orange-50/50 dark:bg-orange-950/50 text-orange-900 dark:text-orange-100 shadow-2xs ring-2 ring-orange-500/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700"
+                    ? "border-orange-600 dark:border-orange-500 bg-orange-500/10 text-orange-900 dark:text-orange-100 shadow-sm ring-2 ring-orange-500/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-orange-300 dark:hover:border-orange-800"
                 }`}
               >
-                <div className="size-5 rounded-md bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-[9px]">
-                  N
-                </div>
+                <NagadIcon className="size-5 shrink-0 shadow-xs" />
                 <span>Nagad</span>
               </button>
             </div>
@@ -305,14 +337,14 @@ export function PosTotalsPanel() {
             {/* Other */}
             <button
               onClick={() => setPaymentMethod("other")}
-              className={`w-full mt-1.5 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+              className={`w-full mt-1.5 flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                 paymentMethod === "other"
-                  ? "border-blue-600 dark:border-blue-500 bg-blue-50/50 dark:bg-blue-950/50 text-blue-900 dark:text-blue-100 shadow-2xs ring-2 ring-blue-500/20"
+                  ? "border-slate-600 dark:border-slate-500 bg-slate-500/10 text-slate-900 dark:text-slate-100 shadow-xs ring-2 ring-slate-500/20"
                   : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700"
               }`}
             >
-              <MoreHorizontal className="size-3.5 text-slate-400" />
-              <span>Other</span>
+              <OtherPaymentIcon className="size-4 shrink-0" />
+              <span>Other Payment</span>
             </button>
           </div>
 
@@ -364,15 +396,34 @@ export function PosTotalsPanel() {
           </div>
         </div>
 
-        {/* ── COMPLETE SALE BUTTON ─────────────────────────── */}
-        <button
-          onClick={handleCompleteSale}
-          disabled={isProcessing || lines.length === 0}
-          className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
-        >
-          <CheckCircle2 className="size-4" />
-          <span>{isProcessing ? "PROCESSING..." : "COMPLETE SALE"}</span>
-        </button>
+        {/* ── COMPLETE SALE & ACTION BUTTONS ──────────────── */}
+        <div className="space-y-2">
+          <button
+            onClick={handleCompleteSale}
+            disabled={isProcessing || cartLines.length === 0}
+            className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-extrabold text-xs tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
+          >
+            <CheckCircle2 className="size-4" />
+            <span>{isProcessing ? "PROCESSING..." : "F10 COMPLETE SALE"}</span>
+          </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => window.print()}
+              className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Printer className="size-3.5 text-blue-600" />
+              <span>Print (Ctrl+P)</span>
+            </button>
+            <button
+              onClick={handleNewInvoice}
+              className="py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <FileText className="size-3.5 text-blue-600" />
+              <span>New Invoice (F11)</span>
+            </button>
+          </div>
+        </div>
       </div>
     </>
   );
