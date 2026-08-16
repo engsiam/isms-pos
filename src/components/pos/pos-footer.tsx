@@ -142,11 +142,11 @@ export function PosFooter() {
         </div>
       )}
 
-      <footer className="h-9 shrink-0 bg-[#070b15] dark:bg-[#070b15] border-t border-slate-800 px-6 flex items-center justify-between text-xs font-semibold text-slate-300 select-none transition-colors duration-300">
+      <footer className="h-9 shrink-0 bg-[#070b15] dark:bg-[#070b15] border-t border-slate-800 px-3 sm:px-6 flex items-center justify-between text-[11px] sm:text-xs font-semibold text-slate-300 select-none transition-colors duration-300">
         {/* Left: Last Invoice & Reprint */}
-        <div className="flex items-center gap-3">
-          <div>
-            <span className="text-slate-400">Last Invoice: </span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="truncate max-w-[140px] sm:max-w-none">
+            <span className="text-slate-400 hidden xs:inline">Last Invoice: </span>
             <span className="text-white font-bold">
               {lastSale ? lastSale.id : "INV-240513-00025"}
             </span>
@@ -154,15 +154,15 @@ export function PosFooter() {
 
           <button
             onClick={() => setHistoryOpen(true)}
-            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-950/80 border border-blue-800 text-blue-400 text-[11px] font-bold hover:bg-blue-900 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-950/80 border border-blue-800 text-blue-400 text-[10px] sm:text-[11px] font-bold hover:bg-blue-900 transition-colors cursor-pointer shrink-0"
           >
             <History className="size-3" />
-            <span>Reprint History</span>
+            <span className="hidden xs:inline">Reprint History</span>
           </button>
         </div>
 
-        {/* Center: Last Payment */}
-        <div>
+        {/* Center: Last Payment (Hidden on tiny screens) */}
+        <div className="hidden md:block">
           <span className="text-slate-400">Last Payment: </span>
           <span className="text-white font-bold">
             {lastSale ? `${formatCurrency(lastSale.total)} (${lastSale.paymentMethod})` : "৳ 1,000.00 (Cash)"}
@@ -170,8 +170,8 @@ export function PosFooter() {
         </div>
 
         {/* Right: Today's Sales */}
-        <div>
-          <span className="text-slate-400">Today's Sales: </span>
+        <div className="shrink-0">
+          <span className="text-slate-400">Today: </span>
           <span className="text-white font-black">
             {formatCurrency(todayTotal > 0 ? todayTotal : 12550)}
           </span>

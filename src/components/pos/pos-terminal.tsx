@@ -15,8 +15,8 @@ export function POSTerminal() {
       <PosHeader />
 
       {/* ── Main POS Workspace ──────────────────────── */}
-      <main className="flex-1 p-4 overflow-hidden flex flex-col min-h-0">
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 min-h-0">
+      <main className="flex-1 p-2.5 sm:p-4 overflow-y-auto lg:overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_380px] gap-3 sm:gap-4 min-h-0">
           {/* Left Column: Controls + Product Panel + Cart Table */}
           <div className="flex flex-col min-w-0 min-h-0 gap-3">
             <PosTransactionBar />
@@ -25,7 +25,7 @@ export function POSTerminal() {
           </div>
 
           {/* Right Column: Order Summary & Complete Sale */}
-          <div className="flex flex-col min-h-0">
+          <div className="flex flex-col min-h-0 pb-3 lg:pb-0">
             <PosTotalsPanel />
           </div>
         </div>

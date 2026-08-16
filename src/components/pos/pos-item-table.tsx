@@ -81,7 +81,7 @@ export function PosItemTable() {
       </div>
 
       {/* ── Cart Table Content ────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-x-auto overflow-y-auto">
         {cartLines.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-44 text-slate-400 dark:text-slate-500 gap-2">
             <div className="size-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
@@ -98,7 +98,7 @@ export function PosItemTable() {
             </button>
           </div>
         ) : (
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full min-w-[500px] text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-6 w-12 text-center">#</th>

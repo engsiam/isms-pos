@@ -100,13 +100,13 @@ export function PosProductPanel() {
 
           {/* ── Search + Category row ──────────────── */}
           <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 shrink-0">
-            <div className="relative w-48 shrink-0">
+            <div className="relative w-32 sm:w-44 md:w-48 shrink-0">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-indigo-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search products…"
-                className="w-full pl-8 pr-3 py-1.5 text-[11px] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm transition-all"
+                className="w-full pl-7 sm:pl-8 pr-2.5 sm:pr-3 py-1.5 text-[10px] sm:text-[11px] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm transition-all"
                 style={{ background: searchBg, border: `1.5px solid ${searchBdr}`, color: searchClr }}
               />
             </div>
